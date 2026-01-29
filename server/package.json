@@ -1,0 +1,19 @@
+{
+    "name": "autoatas-backend",
+    "version": "1.0.0",
+    "description": "Backend server for video to audio conversion",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "node index.js"
+    },
+    "dependencies": {
+        "@google/generative-ai": "^0.24.1",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "fluent-ffmpeg": "^2.1.2",
+        "multer": "^1.4.5-lts.1",
+        "socket.io": "^4.6.1"
+    }
+}

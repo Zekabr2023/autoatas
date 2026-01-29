@@ -1,0 +1,88 @@
+/* Base styles for AutoAtas */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-primary: #F27649;
+  --color-primary-dark: #F27052;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Hide TinyMCE Branding */
+.tox-statusbar,
+.tox-promotion,
+.tox-throbber {
+  display: none !important;
+}
+
+/* Fix TinyMCE Table Picker Contrast */
+.tox-pop__dialog {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.tox-insert-table-picker .tox-insert-table-picker__selected {
+  background-color: #badcfb !important;
+  border-color: #2b6cb0 !important;
+}
+
+.tox-insert-table-picker>div {
+  border-color: #cbd5e0 !important;
+}
+
+/* Ensure Text Color in Dialogs is Dark */
+.tox-dialog__body-content {
+  color: #1a202c !important;
+}
+
+/* Fix TinyMCE Popups Z-Index (must be higher than Modal's 9999) */
+.tox-tinymce-aux {
+  z-index: 10000 !important;
+}
