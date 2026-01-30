@@ -96,6 +96,7 @@ services:
       - internal
     volumes:
       - ${UPLOADS_PATH}:/app/uploads
+      - ${OUTPUTS_PATH}:/app/outputs
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -108,6 +109,9 @@ services:
       - "traefik.http.routers.backend.rule=Host(`${DOMAIN_API}`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend.middlewares=backend-buffering"
+      - "traefik.http.middlewares.backend-buffering.buffering.maxRequestBodyBytes=2147483648"
+      - "traefik.http.middlewares.backend-buffering.buffering.memRequestBodyBytes=2147483648"
       - "traefik.http.services.backend.loadbalancer.server.port=3001"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]

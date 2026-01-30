@@ -157,25 +157,6 @@ collect_inputs() {
     done
     echo ""
 
-    # Portainer password
-    echo -e "${CYAN}🔐 PORTAINER (Gerenciador Docker)${NC}"
-    while true; do
-        read -s -p "Senha do admin Portainer (mín. 12 caracteres): " PORTAINER_PASSWORD
-        echo ""
-        if [ ${#PORTAINER_PASSWORD} -ge 12 ]; then
-            read -s -p "Confirme a senha: " PORTAINER_PASSWORD_CONFIRM
-            echo ""
-            if [ "$PORTAINER_PASSWORD" == "$PORTAINER_PASSWORD_CONFIRM" ]; then
-                break
-            else
-                log_error "As senhas não coincidem."
-            fi
-        else
-            log_error "A senha deve ter no mínimo 12 caracteres."
-        fi
-    done
-    echo ""
-
     # Supabase
     echo -e "${CYAN}🗄️ SUPABASE (Banco de Dados)${NC}"
     read -p "URL do projeto Supabase (ex: https://xxx.supabase.co): " SUPABASE_URL
@@ -259,9 +240,13 @@ setup_directories() {
     
     INSTALL_DIR="/opt/autoatas"
     UPLOADS_DIR="/opt/autoatas/uploads"
+    OUTPUTS_DIR="/opt/autoatas/outputs"
     
     mkdir -p "$INSTALL_DIR"
     mkdir -p "$UPLOADS_DIR"
+    mkdir -p "$OUTPUTS_DIR"
+    chmod 777 "$UPLOADS_DIR"
+    chmod 777 "$OUTPUTS_DIR"
     
     cd "$INSTALL_DIR"
 }
@@ -317,6 +302,7 @@ ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
 # Paths
 UPLOADS_PATH=${UPLOADS_DIR}
+OUTPUTS_PATH=${OUTPUTS_DIR}
 
 # Traefik Dashboard Auth
 TRAEFIK_AUTH=${TRAEFIK_AUTH}
