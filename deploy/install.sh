@@ -351,6 +351,7 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: traefik-public
+    apiVersion: "1.44"
 
 certificatesResolvers:
   letsencrypt:
