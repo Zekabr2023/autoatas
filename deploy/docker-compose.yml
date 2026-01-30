@@ -28,6 +28,7 @@ services:
       - ./acme.json:/etc/traefik/acme.json
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+      - TRAEFIK_PROVIDERS_DOCKER_APIVERSION=1.44
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`${DOMAIN_TRAEFIK}`)"
