@@ -17,9 +17,12 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
+// CORS origin: use env var in production, or allow localhost in dev
+const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+
 const io = new Server(httpServer, {
     cors: {
-        origin: 'http://localhost:3000',
+        origin: corsOrigin,
         methods: ['GET', 'POST']
     }
 });

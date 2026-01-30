@@ -94,26 +94,55 @@ collect_inputs() {
     echo -e "${PURPLE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
 
-    # Base Domain
+    # ===== DOMÍNIOS INDIVIDUAIS =====
+    echo -e "${CYAN}📌 DOMÍNIOS${NC}"
+    echo -e "${YELLOW}   Digite o domínio COMPLETO para cada serviço.${NC}"
+    echo -e "${YELLOW}   Exemplo: autoatas.minhaempresa.com.br${NC}"
+    echo ""
+
+    # Frontend Domain
     while true; do
-        echo -e "${CYAN}📌 DOMÍNIOS${NC}"
-        read -p "Domínio base (ex: seudominio.com): " BASE_DOMAIN
-        if validate_domain "$BASE_DOMAIN"; then
+        read -p "🖥️  Domínio do FRONTEND (aplicação principal): " DOMAIN_APP
+        if validate_domain "$DOMAIN_APP"; then
             break
         else
-            log_error "Domínio inválido. Use o formato: seudominio.com"
+            log_error "Domínio inválido. Use o formato: autoatas.seudominio.com.br"
         fi
     done
 
-    # App subdomain
-    read -p "Subdomínio da aplicação [autoatas]: " APP_SUBDOMAIN
-    APP_SUBDOMAIN="${APP_SUBDOMAIN:-autoatas}"
-    DOMAIN_APP="${APP_SUBDOMAIN}.${BASE_DOMAIN}"
+    # API Domain
+    while true; do
+        read -p "🔌 Domínio da API (backend): " DOMAIN_API
+        if validate_domain "$DOMAIN_API"; then
+            break
+        else
+            log_error "Domínio inválido. Use o formato: api.seudominio.com.br"
+        fi
+    done
 
-    echo ""
-    log_info "Frontend: https://${DOMAIN_APP}"
-    log_info "API: https://api.${BASE_DOMAIN}"
-    log_info "Portainer: https://portainer.${BASE_DOMAIN}"
+    # Portainer Domain
+    while true; do
+        read -p "🐳 Domínio do PORTAINER (gerenciador Docker): " DOMAIN_PORTAINER
+        if validate_domain "$DOMAIN_PORTAINER"; then
+            break
+        else
+            log_error "Domínio inválido. Use o formato: portainer.seudominio.com.br"
+        fi
+    done
+
+    # Traefik Domain (optional)
+    while true; do
+        read -p "🔀 Domínio do TRAEFIK (dashboard - opcional, Enter para pular): " DOMAIN_TRAEFIK
+        if [ -z "$DOMAIN_TRAEFIK" ]; then
+            DOMAIN_TRAEFIK="traefik.localhost"
+            log_info "Dashboard do Traefik não será exposto externamente."
+            break
+        elif validate_domain "$DOMAIN_TRAEFIK"; then
+            break
+        else
+            log_error "Domínio inválido. Use o formato: traefik.seudominio.com.br"
+        fi
+    done
     echo ""
 
     # Email for SSL
@@ -158,7 +187,7 @@ collect_inputs() {
     log_info "Chave de criptografia gerada automaticamente."
     echo ""
 
-    # Traefik dashboard auth (optional)
+    # Traefik dashboard auth
     TRAEFIK_USER="admin"
     TRAEFIK_PASS=$(generate_random_string 16)
     TRAEFIK_AUTH=$(htpasswd -nb "$TRAEFIK_USER" "$TRAEFIK_PASS" 2>/dev/null || echo "admin:\$apr1\$xyz")
@@ -168,11 +197,14 @@ collect_inputs() {
     echo -e "${YELLOW}                    CONFIRME AS CONFIGURAÇÕES                   ${NC}"
     echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
-    echo -e "  Frontend:      ${GREEN}https://${DOMAIN_APP}${NC}"
-    echo -e "  API:           ${GREEN}https://api.${BASE_DOMAIN}${NC}"
-    echo -e "  Portainer:     ${GREEN}https://portainer.${BASE_DOMAIN}${NC}"
-    echo -e "  Email SSL:     ${GREEN}${LETSENCRYPT_EMAIL}${NC}"
-    echo -e "  Supabase URL:  ${GREEN}${SUPABASE_URL}${NC}"
+    echo -e "  🖥️  Frontend:    ${GREEN}https://${DOMAIN_APP}${NC}"
+    echo -e "  🔌 API:         ${GREEN}https://${DOMAIN_API}${NC}"
+    echo -e "  🐳 Portainer:   ${GREEN}https://${DOMAIN_PORTAINER}${NC}"
+    if [ "$DOMAIN_TRAEFIK" != "traefik.localhost" ] && [ -n "$DOMAIN_TRAEFIK" ]; then
+        echo -e "  🔀 Traefik:     ${GREEN}https://${DOMAIN_TRAEFIK}${NC}"
+    fi
+    echo -e "  📧 Email SSL:   ${GREEN}${LETSENCRYPT_EMAIL}${NC}"
+    echo -e "  🗄️  Supabase:    ${GREEN}${SUPABASE_URL}${NC}"
     echo ""
     read -p "As informações estão corretas? (S/n): " confirm
     if [ "$confirm" == "n" ] || [ "$confirm" == "N" ]; then
@@ -240,7 +272,13 @@ clone_repository() {
         rm -rf "$INSTALL_DIR/app"
     fi
     
-    git clone --depth 1 https://github.com/Zekabr2023/autoatas.git app
+    local REPO_URL="https://github.com/Zekabr2023/autoatas.git"
+    
+    if ! git clone --depth 1 "$REPO_URL" app 2>/dev/null; then
+        log_error "Falha ao clonar repositório: $REPO_URL"
+        log_error "Verifique se o repositório existe e é acessível."
+        exit 1
+    fi
     
     log_success "Código baixado com sucesso!"
 }
@@ -260,8 +298,10 @@ create_env_file() {
 # Generated on $(date)
 
 # Domains
-BASE_DOMAIN=${BASE_DOMAIN}
 DOMAIN_APP=${DOMAIN_APP}
+DOMAIN_API=${DOMAIN_API}
+DOMAIN_PORTAINER=${DOMAIN_PORTAINER}
+DOMAIN_TRAEFIK=${DOMAIN_TRAEFIK}
 
 # SSL
 LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
@@ -283,15 +323,59 @@ EOF
     chmod 600 "$INSTALL_DIR/.env"
 }
 
-# Create acme.json for certificates
+# Create acme.json for certificates and generate traefik.yml with actual email
 create_acme_file() {
     touch "$INSTALL_DIR/app/deploy/acme.json"
     chmod 600 "$INSTALL_DIR/app/deploy/acme.json"
+    
+    # Generate traefik.yml with actual email (Traefik doesn't expand env vars in static config)
+    cat > "$INSTALL_DIR/app/deploy/traefik.yml" <<EOF
+# Traefik Static Configuration - Generated by install.sh
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik-public
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "${LETSENCRYPT_EMAIL}"
+      storage: /etc/traefik/acme.json
+      httpChallenge:
+        entryPoint: web
+
+log:
+  level: INFO
+
+accessLog: {}
+EOF
+    log_success "Configuração do Traefik gerada com email SSL."
 }
 
 # Save credentials
 save_credentials() {
     log_info "Salvando credenciais..."
+    
+    local traefik_section=""
+    if [ "$DOMAIN_TRAEFIK" != "traefik.localhost" ] && [ -n "$DOMAIN_TRAEFIK" ]; then
+        traefik_section="Traefik:      https://${DOMAIN_TRAEFIK}"
+    fi
     
     cat > "$INSTALL_DIR/credentials.txt" << EOF
 ╔══════════════════════════════════════════════════════════════════╗
@@ -302,9 +386,9 @@ save_credentials() {
 🌐 URLS DE ACESSO
 ═══════════════════════════════════════════════════════════════════
 Frontend:     https://${DOMAIN_APP}
-API:          https://api.${BASE_DOMAIN}
-Portainer:    https://portainer.${BASE_DOMAIN}
-Traefik:      https://traefik.${BASE_DOMAIN} (opcional)
+API:          https://${DOMAIN_API}
+Portainer:    https://${DOMAIN_PORTAINER}
+${traefik_section}
 
 🔐 PORTAINER
 ═══════════════════════════════════════════════════════════════════
@@ -341,9 +425,14 @@ deploy_stack() {
     # Copy .env to deploy directory
     cp "$INSTALL_DIR/.env" .
     
-    # Build and start
-    docker-compose --env-file .env build --no-cache
-    docker-compose --env-file .env up -d
+    # Build and start (using new docker compose command for modern Docker)
+    if command -v docker compose &> /dev/null; then
+        docker compose --env-file .env build --no-cache
+        docker compose --env-file .env up -d
+    else
+        docker-compose --env-file .env build --no-cache
+        docker-compose --env-file .env up -d
+    fi
     
     log_success "Deploy realizado com sucesso!"
 }
@@ -391,7 +480,7 @@ health_check() {
         log_success "Todos os serviços estão funcionando!"
     else
         log_warning "Alguns serviços podem precisar de mais tempo para iniciar."
-        log_info "Use 'docker-compose logs -f' para verificar os logs."
+        log_info "Use 'docker compose logs -f' para verificar os logs."
     fi
 }
 
@@ -405,8 +494,11 @@ print_final() {
     echo -e "${CYAN}📌 SEUS LINKS DE ACESSO:${NC}"
     echo ""
     echo -e "   🖥️  Frontend:   ${GREEN}https://${DOMAIN_APP}${NC}"
-    echo -e "   🔌 API:        ${GREEN}https://api.${BASE_DOMAIN}${NC}"
-    echo -e "   🐳 Portainer:  ${GREEN}https://portainer.${BASE_DOMAIN}${NC}"
+    echo -e "   🔌 API:        ${GREEN}https://${DOMAIN_API}${NC}"
+    echo -e "   🐳 Portainer:  ${GREEN}https://${DOMAIN_PORTAINER}${NC}"
+    if [ "$DOMAIN_TRAEFIK" != "traefik.localhost" ] && [ -n "$DOMAIN_TRAEFIK" ]; then
+        echo -e "   🔀 Traefik:    ${GREEN}https://${DOMAIN_TRAEFIK}${NC}"
+    fi
     echo ""
     echo -e "${YELLOW}⚠️  IMPORTANTE:${NC}"
     echo -e "   • Os certificados SSL podem levar alguns minutos para serem gerados"
@@ -414,10 +506,10 @@ print_final() {
     echo -e "   • Suas credenciais estão salvas em: ${INSTALL_DIR}/credentials.txt"
     echo ""
     echo -e "${CYAN}📋 COMANDOS ÚTEIS:${NC}"
-    echo -e "   Ver logs:      ${PURPLE}cd ${INSTALL_DIR}/app/deploy && docker-compose logs -f${NC}"
-    echo -e "   Reiniciar:     ${PURPLE}cd ${INSTALL_DIR}/app/deploy && docker-compose restart${NC}"
-    echo -e "   Parar:         ${PURPLE}cd ${INSTALL_DIR}/app/deploy && docker-compose down${NC}"
-    echo -e "   Atualizar:     ${PURPLE}cd ${INSTALL_DIR}/app && git pull && cd deploy && docker-compose up -d --build${NC}"
+    echo -e "   Ver logs:      ${PURPLE}cd ${INSTALL_DIR}/app/deploy && docker compose logs -f${NC}"
+    echo -e "   Reiniciar:     ${PURPLE}cd ${INSTALL_DIR}/app/deploy && docker compose restart${NC}"
+    echo -e "   Parar:         ${PURPLE}cd ${INSTALL_DIR}/app/deploy && docker compose down${NC}"
+    echo -e "   Atualizar:     ${PURPLE}cd ${INSTALL_DIR}/app && git pull && cd deploy && docker compose up -d --build${NC}"
     echo ""
     echo -e "${GREEN}Obrigado por usar o AutoATAS! 🚀${NC}"
     echo ""
