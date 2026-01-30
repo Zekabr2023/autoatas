@@ -27,6 +27,7 @@ services:
     command:
       - "traefik"
       - "--configFile=/etc/traefik/traefik.yml"
+      - "--log.level=DEBUG"
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
       - DOCKER_API_VERSION=1.44
@@ -75,6 +76,7 @@ services:
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-public"
 
   # ======================
   # AUTOATAS - Backend API
