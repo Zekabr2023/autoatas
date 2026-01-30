@@ -69,6 +69,7 @@ services:
       args:
         VITE_SUPABASE_URL: ${SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+        VITE_BACKEND_URL: https://${DOMAIN_API}
     container_name: autoatas-frontend
     restart: unless-stopped
     networks:
