@@ -26,8 +26,14 @@ services:
       - ./acme.json:/etc/traefik/acme.json
     command:
       - "traefik"
-      - "--configFile=/etc/traefik/traefik.yml"
       - "--log.level=DEBUG"
+      # Aumentar timeouts para uploads grandes (30 minutos)
+      - "--entryPoints.web.transport.respondingTimeouts.readTimeout=1800"
+      - "--entryPoints.web.transport.respondingTimeouts.writeTimeout=1800"
+      - "--entryPoints.web.transport.respondingTimeouts.idleTimeout=1800"
+      - "--entryPoints.websecure.transport.respondingTimeouts.readTimeout=1800"
+      - "--entryPoints.websecure.transport.respondingTimeouts.writeTimeout=1800"
+      - "--entryPoints.websecure.transport.respondingTimeouts.idleTimeout=1800"
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
       - DOCKER_API_VERSION=1.44
