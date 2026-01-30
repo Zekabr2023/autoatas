@@ -326,9 +326,10 @@ httpServer.listen(PORT, () => {
     console.log(`🎬 FFmpeg video conversion service ready`);
 });
 
-// Set extended timeout for large file uploads/processing
+// Set extended timeouts to avoid 502 errors behind Traefik/Proxy
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
 httpServer.setTimeout(TIMEOUT_MS);
-
-
+httpServer.keepAliveTimeout = TIMEOUT_MS;
+httpServer.headersTimeout = TIMEOUT_MS + 5000; // Must be > keepAliveTimeout
 httpServer.requestTimeout = TIMEOUT_MS;
