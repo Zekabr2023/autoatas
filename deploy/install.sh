@@ -190,7 +190,9 @@ collect_inputs() {
     # Traefik dashboard auth
     TRAEFIK_USER="admin"
     TRAEFIK_PASS=$(generate_random_string 16)
-    TRAEFIK_AUTH=$(htpasswd -nb "$TRAEFIK_USER" "$TRAEFIK_PASS" 2>/dev/null || echo "admin:\$apr1\$xyz")
+    # Generate hash and escape $ to $$ for docker-compose interpolation
+    RAW_AUTH=$(htpasswd -nb "$TRAEFIK_USER" "$TRAEFIK_PASS" 2>/dev/null || echo "admin:\$apr1\$xyz")
+    TRAEFIK_AUTH=${RAW_AUTH//\$/\$\$}
 
     # Confirm
     echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
