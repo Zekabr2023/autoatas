@@ -326,8 +326,9 @@ httpServer.listen(PORT, () => {
     console.log(`🎬 FFmpeg video conversion service ready`);
 });
 
-// Calculate adequate timeout (e.g., 30 minutes)
-const TIMEOUT_MS = 30 * 60 * 1000;
-httpServer.keepAliveTimeout = TIMEOUT_MS;
-httpServer.headersTimeout = TIMEOUT_MS + 1000;
+// Set extended timeout for large file uploads/processing
+const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+httpServer.setTimeout(TIMEOUT_MS);
+
+
 httpServer.requestTimeout = TIMEOUT_MS;
