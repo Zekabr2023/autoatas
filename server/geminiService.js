@@ -154,15 +154,15 @@ const PROMPTS = {
     'agenda': MINUTES_GENERATION_PROMPT_AGENDA,
 };
 
-// Segment size for audio processing (~30MB per segment = ~30-40 min of MP3 audio)
-// Larger segments = fewer API calls = less rate limiting risk
-const SEGMENT_SIZE_BYTES = 30 * 1024 * 1024;
+// Segment size for audio processing (~10MB per segment = ~10-15 min of MP3 audio)
+// Smaller segments = more API calls but more complete transcription per segment
+const SEGMENT_SIZE_BYTES = 10 * 1024 * 1024;
 
 // Chunk size within each segment (~3.9MB per inline data part)
 const CHUNK_SIZE_BYTES = 3.9 * 1024 * 1024;
 
 // Rate limiting configuration
-const COOLDOWN_AFTER_SEGMENTS = 3; // Wait after every N segments
+const COOLDOWN_AFTER_SEGMENTS = 5; // Wait after every N segments
 const COOLDOWN_DURATION_MS = 60 * 1000; // 1 minute cooldown
 const MAX_RETRIES = 3; // Max retries for rate-limited requests
 const RETRY_BASE_DELAY_MS = 60 * 1000; // 60 seconds base delay for retry
