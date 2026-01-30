@@ -65,31 +65,58 @@ export async function transcribeMedia(
                 const encryptedKey = await encryptApiKey(apiKey);
                 formData.append('encryptedApiKey', encryptedKey);
 
-                onProgress({ percentage: 5, stage: 'Enviando arquivo para o servidor...' });
+                // Use XMLHttpRequest instead of fetch to track upload progress
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${BACKEND_URL}/api/transcribe-media`, true);
 
-                // Upload media to unified endpoint
-                const response = await fetch(`${BACKEND_URL}/api/transcribe-media`, {
-                    method: 'POST',
-                    body: formData,
-                });
+                // Track upload progress
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        // Map upload progress to 0-30% of total flow
+                        // Upload is just step 1. Processing is the rest.
+                        const displayProgress = Math.min(30, Math.round((percentComplete / 100) * 30));
+                        onProgress({
+                            percentage: displayProgress,
+                            stage: `Enviando arquivo para o servidor (${Math.round(percentComplete)}%)...`
+                        });
+                    }
+                };
 
-                socket.disconnect();
+                xhr.onload = async () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            socket.disconnect();
 
-                if (!response.ok) {
-                    const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-                    throw new Error(error.error || 'Erro ao processar arquivo');
-                }
+                            if (data.transcription) {
+                                resolve({
+                                    transcription: data.transcription,
+                                    usageMetadata: data.usageMetadata,
+                                });
+                            } else {
+                                reject(new Error('Servidor não retornou transcrição'));
+                            }
+                        } catch (e) {
+                            reject(new Error('Erro ao processar resposta do servidor'));
+                        }
+                    } else {
+                        let errorMsg = 'Erro ao processar arquivo';
+                        try {
+                            const errData = JSON.parse(xhr.responseText);
+                            if (errData.error) errorMsg = errData.error;
+                        } catch (e) { }
+                        socket.disconnect();
+                        reject(new Error(errorMsg));
+                    }
+                };
 
-                const data = await response.json();
+                xhr.onerror = () => {
+                    socket.disconnect();
+                    reject(new Error('Falha na conexão de upload'));
+                };
 
-                if (data.transcription) {
-                    resolve({
-                        transcription: data.transcription,
-                        usageMetadata: data.usageMetadata,
-                    });
-                } else {
-                    throw new Error('Servidor não retornou transcrição');
-                }
+                xhr.send(formData);
 
             } catch (error) {
                 console.error('Media transcription error:', error);
