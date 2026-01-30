@@ -66,6 +66,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_SUPABASE_URL: ${SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     container_name: autoatas-frontend
     restart: unless-stopped
     networks:
